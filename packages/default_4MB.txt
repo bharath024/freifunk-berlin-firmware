@@ -9,6 +9,7 @@
 -ppp-mod-pppoe
 -wpad
 -opkg
+-usign
  
 # Defaults
 freifunk-berlin-dhcp-defaults
