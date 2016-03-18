@@ -4,10 +4,12 @@
 -kmod-usb-ohci
 -kmod-ppp
 -kmod-usb-serial
+-kmod-lib-crc-ccitt
 -ppp
 -ppp-mod-pppoe
 -wpad
-
+-opkg
+ 
 # Defaults
 freifunk-berlin-dhcp-defaults
 freifunk-berlin-firewall-defaults
