@@ -56,6 +56,7 @@ mbedfw-clean: stamp-clean-mbedfw-cleaned .stamp-mbedfw-cleaned
 
 mbedfw-clean-bin:
 	rm -rf $(MBEDFW_DIR)/bin
+	rm -rf $(MBEDFW_DIR)/build_dir/target-*/*-{imagebuilder,sdk}-*
 
 # update openwrt and checkout specified commit
 mbedfw-update: stamp-clean-mbedfw-updated .stamp-mbedfw-updated
@@ -130,13 +131,9 @@ compile: stamp-clean-compiled .stamp-compiled
 #  * firmwares built with imagebuilder
 #  * imagebuilder file
 #  * packages directory
-<<<<<<< HEAD
 firmwares: stamp-clean-firmwares .stamp-firmwares-build .stamp-firmware-$(MBEDFW_TYPE)-post
 .stamp-firmwares-build: .stamp-firmware-$(MBEDFW_TYPE)-pre .stamp-compiled
-=======
-firmwares: stamp-clean-firmwares .stamp-firmwares
 .stamp-firmwares: .stamp-compiled
->>>>>>> ef0103f... Makefile: use xz for imagebuilder and sdk
 	mkdir -p $(FW_TARGET_DIR)
 	# Create version info file
 	GIT_BRANCH_ESC=$(shell $(GIT_BRANCH) | tr '/' '_'); \
