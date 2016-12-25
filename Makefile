@@ -185,7 +185,9 @@ firmwares: stamp-clean-firmwares .stamp-firmwares-build .stamp-firmware-$(MBEDFW
 .stamp-firmware-lede-post: .stamp-firmwares-build
 	# copy imagebuilder, sdk and toolchain (if existing)
 	cp -a $(MBEDFW_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*{imagebuilder,sdk}*.tar.xz $(FW_TARGET_DIR)/
-	cp -a $(MBEDFW_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*toolchain*.tar.bz2 $(FW_TARGET_DIR)/
+	if [ -e $(MBEDFW_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*toolchain*.tar.bz2 ]; then \
+	  cp -a $(MBEDFW_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*toolchain*.tar.bz2 $(FW_TARGET_DIR)/
+	fi
 	mkdir -p $(FW_TARGET_DIR)/packages/targets/$(MAINTARGET)/$(SUBTARGET)/packages
 	# copy packages
 	PACKAGES_DIR="$(FW_TARGET_DIR)/packages"; \
