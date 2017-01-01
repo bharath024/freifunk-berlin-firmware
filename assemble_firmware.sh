@@ -139,8 +139,8 @@ for profile in $PROFILES ; do
 
 	# profiles can have a suffix. like 4mb devices get a smaller package list pro use case
 	# UBNT:4MB -> profile "UBNT" suffix "4MB"
-	profile="$(echo $profile | cut -d':' -f 1)"
 	suffix="$(echo $profile | cut -d':' -f 2)"
+	profile="$(echo $profile | cut -d':' -f 1)"
 
 	for usecase in $USECASES ; do
 		package_list=""
