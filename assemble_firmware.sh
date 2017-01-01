@@ -157,7 +157,7 @@ for profile in $PROFILES ; do
 		info "Building usecase $usecase"
 		info "Using package list $package_list"
 
-		hookfile="${PKGLIST_DIR}/${package_list}.sh"
+		hookfile=$(to_absolute_path "${PKGLIST_DIR}/${package_list}.sh")
 		if [ -f "$hookfile" ]; then
 			info "Using a post inst hook."
 			img_params="$img_params CUSTOM_POSTINST_SCRIPT=$hookfile"
