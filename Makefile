@@ -130,13 +130,8 @@ compile: stamp-clean-compiled .stamp-compiled
 #  * firmwares built with imagebuilder
 #  * imagebuilder file
 #  * packages directory
-firmwares: stamp-clean-firmwares .stamp-firmwares-build .stamp-$(MBEDFW_TYPE)-post
-.stamp-firmwares-build: .stamp-compiled
-	rm -rf $(IB_BUILD_DIR)
-	mkdir -p $(IB_BUILD_DIR)
-	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(MBEDFW_DIR)/staging_dir/toolchain-*/bin))
-	$(eval IB_FILE := $(shell ls -tr $(MBEDFW_DIR)/bin/$(MAINTARGET)/OpenWrt-ImageBuilder-*.tar.bz2 | tail -n1))
-	#mv $(IB_BUILD_DIR)/$(shell basename $(IB_FILE) .tar.bz2) $(IB_BUILD_DIR)/imgbldr
+firmwares: stamp-clean-firmwares .stamp-firmwares-build .stamp-firmware-$(MBEDFW_TYPE)-post
+.stamp-firmwares-build: .stamp-firmware-$(MBEDFW_TYPE)-pre .stamp-compiled
 	mkdir -p $(FW_TARGET_DIR)
 	# Create version info file
 	GIT_BRANCH_ESC=$(shell $(GIT_BRANCH) | tr '/' '_'); \
@@ -158,7 +153,15 @@ firmwares: stamp-clean-firmwares .stamp-firmwares-build .stamp-$(MBEDFW_TYPE)-po
 	./assemble_firmware.sh -p "$(PROFILES)" -i $(IB_FILE) -t $(FW_TARGET_DIR) -u "$(PACKAGES_LIST_DEFAULT)"
 	touch $@
 
-.stamp-openwrt-post: .stamp-compiled
+.stamp-firmware-openwrt-pre: .stamp-compiled
+	rm -rf $(IB_BUILD_DIR)
+	mkdir -p $(IB_BUILD_DIR)
+	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(MBEDFW_DIR)/staging_dir/toolchain-*/bin))
+	$(eval IB_FILE := $(shell ls -tr $(MBEDFW_DIR)/bin/$(MAINTARGET)/OpenWrt-ImageBuilder-*.tar.bz2 | tail -n1))
+	#mv $(IB_BUILD_DIR)/$(shell basename $(IB_FILE) .tar.bz2) $(IB_BUILD_DIR)/imgbldr
+	touch $@
+
+.stamp-firmware-openwrt-post: .stamp-firmwares-build
 	# copy imagebuilder, sdk and toolchain (if existing)
 	cp -a $(MBEDFW_DIR)/bin/$(MAINTARGET)/OpenWrt-*.tar.bz2 $(FW_TARGET_DIR)/
 	mkdir -p $(FW_TARGET_DIR)/packages/targets/$(MAINTARGET)/$(SUBTARGET)
@@ -169,7 +172,23 @@ firmwares: stamp-clean-firmwares .stamp-firmwares-build .stamp-$(MBEDFW_TYPE)-po
 	rm -rf $(IB_BUILD_DIR)
 	touch $@
 
-.stamp-lede-post: .stamp-compiled
+.stamp-firmware-lede-pre: .stamp-compiled
+	rm -rf $(IB_BUILD_DIR)
+	mkdir -p $(IB_BUILD_DIR)
+	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(MBEDFW_DIR)/staging_dir/toolchain-*/bin))
+	$(eval IB_FILE := $(shell ls -tr $(MBEDFW_DIR)/bin/$(MAINTARGET)/OpenWrt-ImageBuilder-*.tar.bz2 | tail -n1))
+	#mv $(IB_BUILD_DIR)/$(shell basename $(IB_FILE) .tar.bz2) $(IB_BUILD_DIR)/imgbldr
+	touch $@
+
+.stamp-firmware-lede-post: .stamp-firmwares-build
+	# copy imagebuilder, sdk and toolchain (if existing)
+	cp -a $(MBEDFW_DIR)/bin/$(MAINTARGET)/OpenWrt-*.tar.bz2 $(FW_TARGET_DIR)/
+	mkdir -p $(FW_TARGET_DIR)/packages/targets/$(MAINTARGET)/$(SUBTARGET)
+	# copy packages
+	PACKAGES_DIR="$(FW_TARGET_DIR)/packages"; \
+	rm -rf $$PACKAGES_DIR; \
+	cp -a $(MBEDFW_DIR)/bin/$(MAINTARGET)/packages $$PACKAGES_DIR
+	rm -rf $(IB_BUILD_DIR)
 	touch $@
 
 stamp-clean-%:
