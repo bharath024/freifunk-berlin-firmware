@@ -8,9 +8,24 @@ GIT_REPO=git config --get remote.origin.url
 GIT_BRANCH=git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,'
 REVISION=git describe --always
 
+ifeq ($(filter openwrt lede,$(MBEDFW_TYPE)),)
+ $(error invalid FIRMWARE-TYPE "$(MBEDFW_TYPE)")
+endif
+ifeq ($(MBEDFW_TYPE),openwrt)
+ MBEDFW_DIR=$(FW_DIR)/openwrt
+ MBEDFW_SRC=$(OPENWRT_SRC)
+ MBEDFW_COMMIT=$(OPENWRT_COMMIT)
+else ifeq ($(MBEDFW_TYPE),lede)
+ MBEDFW_DIR=$(FW_DIR)/lede
+ MBEDFW_SRC=$(LEDE_SRC)
+ MBEDFW_COMMIT=$(LEDE_COMMIT)
+else
+ $(error invalid FIRMWARE-TYPE "$(MBEDFW_TYPE)")
+endif
+$(info building for $(MBEDFW_TYPE))
+
 # set dir and file names
 FW_DIR=$(shell pwd)
-OPENWRT_DIR=$(FW_DIR)/openwrt
 TARGET_CONFIG=$(FW_DIR)/configs/common.config $(FW_DIR)/configs/$(MAINTARGET)_$(SUBTARGET).config
 IB_BUILD_DIR=$(FW_DIR)/imgbldr_tmp
 FW_TARGET_DIR=$(FW_DIR)/firmwares/$(MAINTARGET)_$(SUBTARGET)
@@ -27,39 +42,39 @@ FW_REVISION=$(shell $(REVISION))
 default: firmwares
 
 # clone openwrt
-$(OPENWRT_DIR):
-	git clone $(OPENWRT_SRC) $(OPENWRT_DIR)
+$(MBEDFW_DIR):
+	git clone $(MBEDFW_SRC) $(MBEDFW_DIR)
 
-# clean up openwrt working copy
-openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
-.stamp-openwrt-cleaned: config.mk | $(OPENWRT_DIR) openwrt-clean-bin
-	cd $(OPENWRT_DIR); \
+# clean up firmware working copy
+mbedfw-clean: stamp-clean-mbedfw-cleaned .stamp-mbedfw-cleaned
+.stamp-mbedfw-cleaned: config.mk | $(MBEDFW_DIR) mbedfw-clean-bin
+	cd $(MBEDFW_DIR); \
 	  ./scripts/feeds clean && \
 	  git clean -dff && git fetch && git reset --hard HEAD && \
 	  rm -rf .config feeds.conf build_dir/target-* logs/
 	touch $@
 
-openwrt-clean-bin:
-	rm -rf $(OPENWRT_DIR)/bin
+mbedfw-clean-bin:
+	rm -rf $(MBEDFW_DIR)/bin
 
 # update openwrt and checkout specified commit
-openwrt-update: stamp-clean-openwrt-updated .stamp-openwrt-updated
-.stamp-openwrt-updated: .stamp-openwrt-cleaned
-	cd $(OPENWRT_DIR); git checkout --detach $(OPENWRT_COMMIT)
+mbedfw-update: stamp-clean-mbedfw-updated .stamp-mbedfw-updated
+.stamp-mbedfw-updated: .stamp-mbedfw-cleaned
+	cd $(MBEDFW_DIR); git checkout --detach $(MBEDFW_COMMIT)
 	touch $@
 
 # patches require updated openwrt working copy
-$(OPENWRT_DIR)/patches: | .stamp-openwrt-updated
+$(MBEDFW_DIR)/patches: | .stamp-mbedfw-updated
 	ln -s $(FW_DIR)/patches $@
 
 # feeds
-$(OPENWRT_DIR)/feeds.conf: .stamp-openwrt-updated feeds.conf
+$(MBEDFW_DIR)/feeds.conf: .stamp-mbedfw-updated feeds.conf
 	cp $(FW_DIR)/feeds.conf $@
 
 # update feeds
 feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
-.stamp-feeds-updated: $(OPENWRT_DIR)/feeds.conf unpatch
-	+cd $(OPENWRT_DIR); \
+.stamp-feeds-updated: $(MBEDFW_DIR)/feeds.conf unpatch
+	+cd $(MBEDFW_DIR); \
 	  ./scripts/feeds uninstall -a && \
 	  ./scripts/feeds update && \
 	  ./scripts/feeds install -a
@@ -67,13 +82,13 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 
 # prepare patch
 pre-patch: stamp-clean-pre-patch .stamp-pre-patch
-.stamp-pre-patch: .stamp-feeds-updated $(wildcard $(FW_DIR)/patches/*) | $(OPENWRT_DIR)/patches
+.stamp-pre-patch: .stamp-feeds-updated $(wildcard $(FW_DIR)/patches/*) | $(MBEDFW_DIR)/patches
 	touch $@
 
 # patch openwrt working copy
 patch: stamp-clean-patched .stamp-patched
 .stamp-patched: .stamp-pre-patch
-	cd $(OPENWRT_DIR); quilt push -a
+	cd $(MBEDFW_DIR); quilt push -a
 	touch $@
 
 .stamp-build_rev: .FORCE
@@ -88,27 +103,27 @@ endif
 # share download dir
 $(FW_DIR)/dl:
 	mkdir $(FW_DIR)/dl
-$(OPENWRT_DIR)/dl: $(FW_DIR)/dl
-	ln -s $(FW_DIR)/dl $(OPENWRT_DIR)/dl
+$(MBEDFW_DIR)/dl: $(FW_DIR)/dl
+	ln -s $(FW_DIR)/dl $(MBEDFW_DIR)/dl
 
 # openwrt config
-$(OPENWRT_DIR)/.config: .stamp-patched $(TARGET_CONFIG) .stamp-build_rev $(OPENWRT_DIR)/dl
-	cat $(TARGET_CONFIG) >$(OPENWRT_DIR)/.config
-	sed -i "/^CONFIG_VERSION_NUMBER=/ s/\"$$/\+$(FW_REVISION)\"/" $(OPENWRT_DIR)/.config
+$(MBEDFW_DIR)/.config: .stamp-patched $(TARGET_CONFIG) .stamp-build_rev $(MBEDFW_DIR)/dl
+	cat $(TARGET_CONFIG) >$(MBEDFW_DIR)/.config
+	sed -i "/^CONFIG_VERSION_NUMBER=/ s/\"$$/\+$(FW_REVISION)\"/" $(MBEDFW_DIR)/.config
 	$(UMASK); \
-	  $(MAKE) -C $(OPENWRT_DIR) defconfig
+	  $(MAKE) -C $(MBEDFW_DIR) defconfig
 
 # prepare openwrt working copy
 prepare: stamp-clean-prepared .stamp-prepared
-.stamp-prepared: .stamp-patched $(OPENWRT_DIR)/.config
-	sed -i 's,^# REVISION:=.*,REVISION:=$(FW_REVISION),g' $(OPENWRT_DIR)/include/version.mk
+.stamp-prepared: .stamp-patched $(MBEDFW_DIR)/.config
+	sed -i 's,^# REVISION:=.*,REVISION:=$(FW_REVISION),g' $(MBEDFW_DIR)/include/version.mk
 	touch $@
 
 # compile
 compile: stamp-clean-compiled .stamp-compiled
-.stamp-compiled: .stamp-prepared openwrt-clean-bin
+.stamp-compiled: .stamp-prepared mbedfw-clean-bin
 	$(UMASK); \
-	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
+	  $(MAKE) -C $(MBEDFW_DIR) $(MAKE_ARGS)
 	touch $@
 
 # fill firmwares-directory with:
@@ -119,8 +134,8 @@ firmwares: stamp-clean-firmwares .stamp-firmwares
 .stamp-firmwares: .stamp-compiled
 	rm -rf $(IB_BUILD_DIR)
 	mkdir -p $(IB_BUILD_DIR)
-	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(OPENWRT_DIR)/staging_dir/toolchain-*/bin))
-	$(eval IB_FILE := $(shell ls -tr $(OPENWRT_DIR)/bin/$(MAINTARGET)/OpenWrt-ImageBuilder-*.tar.bz2 | tail -n1))
+	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(MBEDFW_DIR)/staging_dir/toolchain-*/bin))
+	$(eval IB_FILE := $(shell ls -tr $(MBEDFW_DIR)/bin/$(MAINTARGET)/OpenWrt-ImageBuilder-*.tar.bz2 | tail -n1))
 	#mv $(IB_BUILD_DIR)/$(shell basename $(IB_FILE) .tar.bz2) $(IB_BUILD_DIR)/imgbldr
 	mkdir -p $(FW_TARGET_DIR)
 	# Create version info file
@@ -130,11 +145,11 @@ firmwares: stamp-clean-firmwares .stamp-firmwares
 	echo "https://wiki.freifunk.net/Berlin:Firmware" >> $$VERSION_FILE; \
 	echo "Firmware: git branch \"$$GIT_BRANCH_ESC\", revision $(FW_REVISION)" >> $$VERSION_FILE; \
 	# add openwrt revision with data from config.mk \
-	OPENWRT_REVISION=`cd $(OPENWRT_DIR); $(REVISION)`; \
-	echo "OpenWRT: repository from $(OPENWRT_SRC), git branch \"$(OPENWRT_COMMIT)\", revision $$OPENWRT_REVISION" >> $$VERSION_FILE; \
+	MBEDFW_REVISION=`cd $(MBEDFW_DIR); $(REVISION)`; \
+	echo "OpenWRT: repository from $(MBEDFW_SRC), git branch \"$(MBEDFW_COMMIT)\", revision $$MBEDFW_REVISION" >> $$VERSION_FILE; \
 	# add feed revisions \
-	for FEED in `cd $(OPENWRT_DIR); ./scripts/feeds list -n`; do \
-	  FEED_DIR=$(addprefix $(OPENWRT_DIR)/feeds/,$$FEED); \
+	for FEED in `cd $(MBEDFW_DIR); ./scripts/feeds list -n`; do \
+	  FEED_DIR=$(addprefix $(MBEDFW_DIR)/feeds/,$$FEED); \
 	  FEED_GIT_REPO=`cd $$FEED_DIR; $(GIT_REPO)`; \
 	  FEED_GIT_BRANCH_ESC=`cd $$FEED_DIR; $(GIT_BRANCH) | tr '/' '_'`; \
 	  FEED_REVISION=`cd $$FEED_DIR; $(REVISION)`; \
@@ -142,12 +157,12 @@ firmwares: stamp-clean-firmwares .stamp-firmwares
 	done
 	./assemble_firmware.sh -p "$(PROFILES)" -i $(IB_FILE) -t $(FW_TARGET_DIR) -u "$(PACKAGES_LIST_DEFAULT)"
 	# copy imagebuilder, sdk and toolchain (if existing)
-	cp -a $(OPENWRT_DIR)/bin/$(MAINTARGET)/OpenWrt-*.tar.bz2 $(FW_TARGET_DIR)/
+	cp -a $(MBEDFW_DIR)/bin/$(MAINTARGET)/OpenWrt-*.tar.bz2 $(FW_TARGET_DIR)/
 	mkdir -p $(FW_TARGET_DIR)/packages/targets/$(MAINTARGET)/$(SUBTARGET)
 	# copy packages
 	PACKAGES_DIR="$(FW_TARGET_DIR)/packages"; \
 	rm -rf $$PACKAGES_DIR; \
-	cp -a $(OPENWRT_DIR)/bin/$(MAINTARGET)/packages $$PACKAGES_DIR
+	cp -a $(MBEDFW_DIR)/bin/$(MAINTARGET)/packages $$PACKAGES_DIR
 	rm -rf $(IB_BUILD_DIR)
 	touch $@
 
@@ -158,13 +173,13 @@ stamp-clean:
 	rm -f .stamp-*
 
 # unpatch needs "patches/" in openwrt
-unpatch: $(OPENWRT_DIR)/patches
+unpatch: $(MBEDFW_DIR)/patches
 # RC = 2 of quilt --> nothing to be done
-	cd $(OPENWRT_DIR); quilt pop -a -f || [ $$? = 2 ] && true
+	cd $(MBEDFW_DIR); quilt pop -a -f || [ $$? = 2 ] && true
 	rm -f .stamp-patched
 
-clean: stamp-clean .stamp-openwrt-cleaned
+clean: stamp-clean .stamp-mbedfw-cleaned
 
-.PHONY: openwrt-clean openwrt-clean-bin openwrt-update patch feeds-update prepare compile firmwares stamp-clean clean
+.PHONY: mbedfw-clean mbedfw-clean-bin mbedfw-update patch feeds-update prepare compile firmwares stamp-clean clean
 .NOTPARALLEL:
 .FORCE:
