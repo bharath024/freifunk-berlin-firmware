@@ -160,18 +160,35 @@ firmwares: stamp-clean-firmwares .stamp-firmwares images
 	done
 	touch $@
 
-images: $(EXT_IB_FILE) | .stamp-versioninfo
-	rm -rf $(IB_BUILD_DIR)
-	mkdir -p $(IB_BUILD_DIR)
-	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(LEDE_DIR)/staging_dir/toolchain-*/bin))
-ifdef EXT_IB_FILE
+imagebuilder: 
+	$(eval IB_FILE := $(shell ls -tr $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*-imagebuilder-*.tar.xz | tail -n1))
+
+ext_imagebuilder: | test1 images
+test1:
+ifndef EXT_IB_FILE
+	$(error EXT_IB_FILE not defined)
+else
+ifeq (,$(wildcard $(EXT_IB_FILE)))
+	$(error EXT_IB_FILE not existing)
+endif
+endif
 	echo ext ib: $(EXT_IB_FILE)
 	$(eval IB_FILE := $(EXT_IB_FILE))
 	echo ib: $(IB_FILE)
-else
-	echo original ib check
-	$(eval IB_FILE := $(shell ls -tr $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*-imagebuilder-*.tar.xz | tail -n1))
-endif
+
+images:
+#$(wildcard $(IB_FILE))
+#ifeq (,$(wildcard $(IB_FILE)))
+#	$(info IB_FILE not existing, building one)
+#	$(call .stamp-versioninfo)
+#else
+#	$(eval USE_EXT_IB_FILE := true)
+#endif
+#ifndef IB_FILE
+#endif
+	rm -rf $(IB_BUILD_DIR)
+	mkdir -p $(IB_BUILD_DIR)
+	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(LEDE_DIR)/staging_dir/toolchain-*/bin))
 	mkdir -p $(FW_TARGET_DIR)
 	./assemble_firmware.sh -p "$(PROFILES)" -i $(IB_FILE) -e $(FW_DIR)/embedded-files -t $(FW_TARGET_DIR) -u "$(PACKAGES_LIST_DEFAULT)"
 	# get relative path of firmwaredir
@@ -182,7 +199,7 @@ endif
 	for file in `find $(RELPATH) -name "freifunk-berlin-*-squashfs-*.bin"` ; do mv $$file $${file/squashfs-/}; done
 	# 2) remove all TARGET names (e.g. ar71xx-generic) from filename
 	for file in `find $(RELPATH) -name "freifunk-berlin-*-$(MAINTARGET)-$(SUBTARGET)-*.bin"` ; do mv $$file $${file/$(MAINTARGET)-$(SUBTARGET)-/}; done
-ifndef EXT_IB_FILE
+ifndef USE_EXT_IB_FILE
 	# copy imagebuilder, sdk and toolchain (if existing)
 	# remove old versions
 	rm -f $(FW_TARGET_DIR)/*.tar.xz
