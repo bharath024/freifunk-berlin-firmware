@@ -137,13 +137,10 @@ endif
 #  * firmwares built with imagebuilder
 #  * imagebuilder file
 #  * packages directory
-firmwares: stamp-clean-firmwares .stamp-firmwares
+firmwares: stamp-clean-firmwares .stamp-firmwares images
 .stamp-firmwares: .stamp-compiled
-	rm -rf $(IB_BUILD_DIR)
-	mkdir -p $(IB_BUILD_DIR)
-	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(LEDE_DIR)/staging_dir/toolchain-*/bin))
-	$(eval IB_FILE := $(shell ls -tr $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*-imagebuilder-*.tar.xz | tail -n1))
-	mkdir -p $(FW_TARGET_DIR)
+
+.stamp-versioninfo: .stamp-compiled
 	# Create version info file
 	GIT_BRANCH_ESC=$(shell $(GIT_BRANCH) | tr '/' '_'); \
 	VERSION_FILE=$(FW_TARGET_DIR)/VERSION.txt; \
@@ -161,6 +158,21 @@ firmwares: stamp-clean-firmwares .stamp-firmwares
 	  FEED_REVISION=`cd $$FEED_DIR; $(REVISION)`; \
 	  echo "Feed $$FEED: repository from $$FEED_GIT_REPO, git branch \"$$FEED_GIT_BRANCH_ESC\", revision $$FEED_REVISION" >> $$VERSION_FILE; \
 	done
+	touch $@
+
+images: $(EXT_IB_FILE) | .stamp-versioninfo
+	rm -rf $(IB_BUILD_DIR)
+	mkdir -p $(IB_BUILD_DIR)
+	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(LEDE_DIR)/staging_dir/toolchain-*/bin))
+ifdef EXT_IB_FILE
+	echo ext ib: $(EXT_IB_FILE)
+	$(eval IB_FILE := $(EXT_IB_FILE))
+	echo ib: $(IB_FILE)
+else
+	echo original ib check
+	$(eval IB_FILE := $(shell ls -tr $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*-imagebuilder-*.tar.xz | tail -n1))
+endif
+	mkdir -p $(FW_TARGET_DIR)
 	./assemble_firmware.sh -p "$(PROFILES)" -i $(IB_FILE) -e $(FW_DIR)/embedded-files -t $(FW_TARGET_DIR) -u "$(PACKAGES_LIST_DEFAULT)"
 	# get relative path of firmwaredir
 	$(eval RELPATH := $(shell perl -e 'use File::Spec; print File::Spec->abs2rel(@ARGV) . "\n"' "$(FW_TARGET_DIR)" "$(FW_DIR)" ))
@@ -170,6 +182,7 @@ firmwares: stamp-clean-firmwares .stamp-firmwares
 	for file in `find $(RELPATH) -name "freifunk-berlin-*-squashfs-*.bin"` ; do mv $$file $${file/squashfs-/}; done
 	# 2) remove all TARGET names (e.g. ar71xx-generic) from filename
 	for file in `find $(RELPATH) -name "freifunk-berlin-*-$(MAINTARGET)-$(SUBTARGET)-*.bin"` ; do mv $$file $${file/$(MAINTARGET)-$(SUBTARGET)-/}; done
+ifndef EXT_IB_FILE
 	# copy imagebuilder, sdk and toolchain (if existing)
 	# remove old versions
 	rm -f $(FW_TARGET_DIR)/*.tar.xz
@@ -183,6 +196,7 @@ firmwares: stamp-clean-firmwares .stamp-firmwares
 	cp -a $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/packages/* $$PACKAGES_DIR/targets/$(MAINTARGET)/$(SUBTARGET)/packages; \
 	# e.g. packages/packages/mips_34k the doublicated packages is correct! \
 	cp -a $(LEDE_DIR)/bin/packages $$PACKAGES_DIR/
+endif
 	rm -rf $(IB_BUILD_DIR)
 	touch $@
 
