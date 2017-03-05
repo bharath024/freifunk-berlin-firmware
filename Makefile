@@ -176,7 +176,7 @@ endif
 	$(eval IB_FILE := $(EXT_IB_FILE))
 	echo ib: $(IB_FILE)
 
-images:
+images: .FORCE
 #$(wildcard $(IB_FILE))
 #ifeq (,$(wildcard $(IB_FILE)))
 #	$(info IB_FILE not existing, building one)
@@ -199,7 +199,10 @@ images:
 	for file in `find $(RELPATH) -name "freifunk-berlin-*-squashfs-*.bin"` ; do mv $$file $${file/squashfs-/}; done
 	# 2) remove all TARGET names (e.g. ar71xx-generic) from filename
 	for file in `find $(RELPATH) -name "freifunk-berlin-*-$(MAINTARGET)-$(SUBTARGET)-*.bin"` ; do mv $$file $${file/$(MAINTARGET)-$(SUBTARGET)-/}; done
-ifndef USE_EXT_IB_FILE
+	rm -rf $(IB_BUILD_DIR)
+	touch $@
+
+fill_finaldir: .stamp-compiled .stamp-versioninfo
 	# copy imagebuilder, sdk and toolchain (if existing)
 	# remove old versions
 	rm -f $(FW_TARGET_DIR)/*.tar.xz
@@ -213,8 +216,6 @@ ifndef USE_EXT_IB_FILE
 	cp -a $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/packages/* $$PACKAGES_DIR/targets/$(MAINTARGET)/$(SUBTARGET)/packages; \
 	# e.g. packages/packages/mips_34k the doublicated packages is correct! \
 	cp -a $(LEDE_DIR)/bin/packages $$PACKAGES_DIR/
-endif
-	rm -rf $(IB_BUILD_DIR)
 	touch $@
 
 stamp-clean-%:
