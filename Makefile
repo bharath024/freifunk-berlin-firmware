@@ -160,38 +160,22 @@ firmwares: stamp-clean-firmwares .stamp-firmwares
 	done
 	touch $@
 
-imagebuilder: | test2 .stamp-images
-test2: 
-	$(info target $@)
-	$(eval IB_FILE := $(shell ls -tr $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*-imagebuilder-*.tar.xz | tail -n1))
-
-ext_imagebuilder: | test1 images
-test1:
-ifndef EXT_IB_FILE
-	$(error EXT_IB_FILE not defined)
-else
-ifeq (,$(wildcard $(EXT_IB_FILE)))
-	$(error EXT_IB_FILE not existing)
-endif
-endif
-	echo ext ib: $(EXT_IB_FILE)
-	$(eval IB_FILE := $(EXT_IB_FILE))
-	echo ib: $(IB_FILE)
 
 images: .stamp-images
+ifeq ($(origin IB_FILE),command line)
+  $(info IB_FILE explicitly defined; just building firmware-images)
 .stamp-images: .FORCE
-#$(wildcard $(IB_FILE))
-#ifeq (,$(wildcard $(IB_FILE)))
-#	$(info IB_FILE not existing, building one)
-#	$(call .stamp-versioninfo)
-#else
-#	$(eval USE_EXT_IB_FILE := true)
-#endif
-#ifndef IB_FILE
-#endif
+  ifeq (,$(wildcard $(IB_FILE)))
+    $(error IB_FILE not existing)
+  endif
+else
+#$(error origin IB_FILE = $(origin IB_FILE))
+.stamp-images: .stamp-compiled
+	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(LEDE_DIR)/staging_dir/toolchain-*/bin))
+	$(eval IB_FILE := $(shell ls -tr $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*-imagebuilder-*.tar.xz | tail -n1))
+endif
 	rm -rf $(IB_BUILD_DIR)
 	mkdir -p $(IB_BUILD_DIR)
-	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(LEDE_DIR)/staging_dir/toolchain-*/bin))
 	mkdir -p $(FW_TARGET_DIR)
 	./assemble_firmware.sh -p "$(PROFILES)" -i $(IB_FILE) -e $(FW_DIR)/embedded-files -t $(FW_TARGET_DIR) -u "$(PACKAGES_LIST_DEFAULT)"
 	# get relative path of firmwaredir
