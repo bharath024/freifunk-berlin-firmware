@@ -133,13 +133,6 @@ ifdef IS_BUILDBOT
 endif
 	touch $@
 
-# fill firmwares-directory with:
-#  * firmwares built with imagebuilder
-#  * imagebuilder file
-#  * packages directory
-firmwares: stamp-clean-firmwares .stamp-firmwares
-.stamp-firmwares: images
-
 .stamp-versioninfo: .stamp-prepared
 	# Create version info file
 	GIT_BRANCH_ESC=$(shell $(GIT_BRANCH) | tr '/' '_'); \
@@ -162,6 +155,7 @@ firmwares: stamp-clean-firmwares .stamp-firmwares
 
 
 images: .stamp-images
+
 ifeq ($(origin IB_FILE),command line)
   $(info IB_FILE explicitly defined; just building firmware-images)
 .stamp-images: .FORCE
@@ -189,7 +183,12 @@ endif
 	rm -rf $(IB_BUILD_DIR)
 	touch $@
 
-fill_finaldir: .stamp-compiled .stamp-versioninfo
+# fill firmwares-directory with:
+#  * firmwares built with imagebuilder
+#  * imagebuilder file
+#  * packages directory
+firmwares: stamp-clean-firmwares .stamp-firmwares
+.stamp-firmwares: .stamp-images .stamp-versioninfo
 	# copy imagebuilder, sdk and toolchain (if existing)
 	# remove old versions
 	rm -f $(FW_TARGET_DIR)/*.tar.xz
