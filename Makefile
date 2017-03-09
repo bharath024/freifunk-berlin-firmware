@@ -140,7 +140,7 @@ endif
 firmwares: stamp-clean-firmwares .stamp-firmwares
 .stamp-firmwares: images
 
-.stamp-versioninfo: .stamp-compiled
+.stamp-versioninfo: .stamp-prepared
 	# Create version info file
 	GIT_BRANCH_ESC=$(shell $(GIT_BRANCH) | tr '/' '_'); \
 	VERSION_FILE=$(FW_TARGET_DIR)/VERSION.txt; \
