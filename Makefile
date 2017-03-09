@@ -137,8 +137,8 @@ endif
 #  * firmwares built with imagebuilder
 #  * imagebuilder file
 #  * packages directory
-firmwares: stamp-clean-firmwares .stamp-firmwares images
-.stamp-firmwares: .stamp-compiled
+firmwares: stamp-clean-firmwares .stamp-firmwares
+.stamp-firmwares: images
 
 .stamp-versioninfo: .stamp-compiled
 	# Create version info file
@@ -160,7 +160,9 @@ firmwares: stamp-clean-firmwares .stamp-firmwares images
 	done
 	touch $@
 
-imagebuilder: 
+imagebuilder: | test2 .stamp-images
+test2: 
+	$(info target $@)
 	$(eval IB_FILE := $(shell ls -tr $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*-imagebuilder-*.tar.xz | tail -n1))
 
 ext_imagebuilder: | test1 images
@@ -176,7 +178,8 @@ endif
 	$(eval IB_FILE := $(EXT_IB_FILE))
 	echo ib: $(IB_FILE)
 
-images: .FORCE
+images: .stamp-images
+.stamp-images: .FORCE
 #$(wildcard $(IB_FILE))
 #ifeq (,$(wildcard $(IB_FILE)))
 #	$(info IB_FILE not existing, building one)
