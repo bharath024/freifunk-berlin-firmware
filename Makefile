@@ -163,8 +163,8 @@ ifeq ($(origin IB_FILE),command line)
     $(error IB_FILE not existing)
   endif
 else
-#$(error origin IB_FILE = $(origin IB_FILE))
 .stamp-images: .stamp-compiled
+$(info IB_FILE not defined; called from inseide regular build)
 	$(eval TOOLCHAIN_PATH := $(shell printf "%s:" $(LEDE_DIR)/staging_dir/toolchain-*/bin))
 	$(eval IB_FILE := $(shell ls -tr $(LEDE_DIR)/bin/targets/$(MAINTARGET)/$(SUBTARGET)/*-imagebuilder-*.tar.xz | tail -n1))
 endif
