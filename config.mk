@@ -2,6 +2,6 @@
 SHELL:=$(shell which bash)
 TARGET=ar71xx-generic
 PACKAGES_LIST_DEFAULT=default backbone
-LEDE_SRC=https://git.lede-project.org/source.git
-LEDE_COMMIT=48461b5abc382b26edd0d2637f0f7b952bed90ba
+LEDE_SRC=https://github.com/SvenRoederer/lede-project-source.git
+LEDE_COMMIT=869747f319c83940b17cd98afce9e41eec6ec7cc
 MAKE_ARGS=
