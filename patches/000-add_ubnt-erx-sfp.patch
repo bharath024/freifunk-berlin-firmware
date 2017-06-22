@@ -115,8 +115,8 @@ index 0000000..7619a5d
 +
 +	i2c-gpio {
 +		compatible = "i2c-gpio";
-+		gpios = <&gpio0 3 GPIO_ACTIVE_HIGH /* sda */
-+		         &gpio0 4 GPIO_ACTIVE_HIGH /* scl */
++		gpios = <&gpio0 3 0 /* sda */
++		         &gpio0 4 0 /* scl */
 +		        >;
 +		#address-cells = <1>;
 +		#size-cells = <0>;
