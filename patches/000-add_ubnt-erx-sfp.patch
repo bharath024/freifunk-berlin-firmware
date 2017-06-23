@@ -111,7 +111,7 @@ index 0000000..7619a5d
 +
 +/ {
 +	model = "UBNT-ERX-SFP";
-+	compatible = "ubiquiti,edgerouterx-sfp";
++/*	compatible = "ubiquiti,edgerouterx-sfp";*/
 +
 +	i2c-gpio {
 +		compatible = "i2c-gpio";
